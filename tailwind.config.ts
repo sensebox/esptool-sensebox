@@ -59,6 +59,40 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      keyframes: {
+        float1: {
+          '0%': { transform: 'translateY(0px) translateX(0px) rotate(0deg)' },
+          '50%': {
+            transform: 'translateY(-15px) translateX(10px) rotate(5deg)',
+          },
+          '100%': {
+            transform: 'translateY(10px) translateX(-10px) rotate(-5deg)',
+          },
+        },
+        float2: {
+          '0%': { transform: 'translateY(0px) translateX(0px) rotate(0deg)' },
+          '50%': {
+            transform: 'translateY(20px) translateX(-5px) rotate(-3deg)',
+          },
+          '100%': {
+            transform: 'translateY(-15px) translateX(8px) rotate(3deg)',
+          },
+        },
+        float3: {
+          '0%': { transform: 'translateY(0px) translateX(0px) rotate(0deg)' },
+          '50%': {
+            transform: 'translateY(-10px) translateX(15px) rotate(4deg)',
+          },
+          '100%': {
+            transform: 'translateY(15px) translateX(-5px) rotate(-4deg)',
+          },
+        },
+      },
+      animation: {
+        float1: 'float1 10s infinite alternate ease-in-out',
+        float2: 'float2 12s infinite alternate ease-in-out',
+        float3: 'float3 8s infinite alternate ease-in-out',
+      },
     },
   },
   plugins: [require('tailwindcss-animate')],

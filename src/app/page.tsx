@@ -5,12 +5,16 @@ import Image from 'next/image'
 export default function Home() {
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-6">
-      <div className="yellow-circle one"></div>
-      <div className="yellow-circle two"></div>
+      <div className="-z-10">
+        {/* Gelbe Kreise mit zufälligen Bewegungen */}
+        <div className="animate-float1 absolute right-[5%] top-[10%] h-[120px] w-[120px] rounded-full bg-senseboxYellow shadow-lg"></div>
+        <div className="animate-float2 delay-[1500ms] absolute bottom-[20%] left-[15%] h-[80px] w-[80px] rounded-full bg-senseboxYellow shadow-lg"></div>
 
-      <div className="blue-ring one"></div>
-      <div className="blue-ring two"></div>
-      <div className="blue-ring three"></div>
+        {/* Blaue Ringe mit individuellen Bewegungen */}
+        <div className="animate-float3 delay-[2000ms] absolute left-[-40px] top-[15%] h-[160px] w-[160px] rounded-full border-8 border-senseboxBlue opacity-50"></div>
+        <div className="animate-float1 delay-[3000ms] absolute bottom-[10%] right-[5%] h-[200px] w-[200px] rounded-full border-[10px] border-senseboxBlue opacity-50"></div>
+        <div className="animate-float2 delay-[4000ms] absolute left-[65%] top-[5%] h-[250px] w-[250px] -translate-x-1/2 -translate-y-1/2 transform rounded-full border-[6px] border-senseboxBlue opacity-50"></div>
+      </div>
 
       <Image
         src="/sensebox_logo.png"
