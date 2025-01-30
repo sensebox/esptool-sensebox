@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -22,35 +22,35 @@ import { UploadCloud, FileText, Cpu, SearchIcon } from 'lucide-react'
 import { ESPLoader, FlashOptions, LoaderOptions, Transport } from 'esptool-js'
 import { Terminal } from '@xterm/xterm'
 
-const device = null
-let transport: Transport
 let chip: string = ''
 let esploader: ESPLoader
 
-export default function BoardSelect() {
+interface BoardSelectProps {
+  terminal: Terminal | null
+}
+
+export default function BoardSelect({ terminal }: BoardSelectProps) {
   const [canUseSerial] = useState(() => 'serial' in navigator)
   const serial = navigator['serial']
 
   const [sketch, setSketch] = useState<string>('')
 
-  const term = new Terminal({ cols: 120, rows: 40 })
-
   const espLoaderTerminal = {
     clean() {
-      term.clear()
+      terminal?.clear()
     },
     writeLine(data: string) {
-      term.writeln(data)
+      terminal?.writeln(data)
     },
     write(data: string) {
-      term.write(data)
+      terminal?.write(data)
     },
   }
   const listSerialPorts = async () => {
     try {
       const device = await serial.requestPort({
         // only show senseboxes
-        // filters: [{ usbVendorId: 0x303a, usbProductId: 0x81b8 }],
+        filters: [{ usbVendorId: 0x303a }],
       })
       const transport = new Transport(device)
       const flashOptions = {

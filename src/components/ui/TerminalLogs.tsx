@@ -1,19 +1,21 @@
 'use client'
-import { useEffect, useState } from "react";
+import { Terminal } from '@xterm/xterm'
+import { useEffect, useState } from 'react'
 
 interface TerminalLogsProps {
-  logs: string;
+  logs: string
+  terminal: Terminal | null
 }
 
 export default function TerminalLogs({ logs }: TerminalLogsProps) {
-  const [logLines, setLogLines] = useState<string[]>([]);
+  const [logLines, setLogLines] = useState<string[]>([])
 
   useEffect(() => {
-    setLogLines(logs.split("\n"));
-  }, [logs]);
+    setLogLines(logs.split('\n'))
+  }, [logs])
 
   return (
-    <div className="w-full max-w-lg bg-black text-green-400 font-mono p-4 rounded-md shadow-md overflow-auto h-96 border border-gray-700 flex flex-col flex-col-reverse">
+    <div className="flex h-96 w-full max-w-lg flex-col overflow-auto rounded-md border border-gray-700 bg-black p-4 font-mono text-green-400 shadow-md">
       <div className="whitespace-pre-wrap">
         {logLines.map((line, index) => (
           <div key={index} className="leading-relaxed">
@@ -22,5 +24,5 @@ export default function TerminalLogs({ logs }: TerminalLogsProps) {
         ))}
       </div>
     </div>
-  );
+  )
 }

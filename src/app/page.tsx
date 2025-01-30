@@ -1,8 +1,13 @@
+'use client'
 import BoardSelect from '@/components/pages/BoardSelect'
-import TerminalLogs from '@/components/ui/TerminalLogs'
+import { useXTerm } from 'react-xtermjs'
 import Image from 'next/image'
 
 export default function Home() {
+  const { instance, ref } = useXTerm()
+
+  instance?.onData(data => instance?.write(data))
+
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-6">
       <div className="-z-10">
@@ -39,10 +44,12 @@ export default function Home() {
       {/* Board- und Terminal-Komponenten */}
       <div className="flex items-center gap-4">
         <div className="h-96 w-96">
-          <BoardSelect />
+          <BoardSelect terminal={instance} />
         </div>
         <div className="h-96 w-96">
-          <TerminalLogs logs="Logs werden hier gezeigt.." />
+          <div className="whitespace-pre-wrap">
+            <div ref={ref} style={{ height: '100%', width: '100%' }} />
+          </div>
         </div>
       </div>
     </div>
