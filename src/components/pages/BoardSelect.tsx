@@ -22,9 +22,16 @@ import { UploadCloud, FileText, Cpu, SearchIcon } from 'lucide-react'
 import { ESPLoader, FlashOptions, LoaderOptions, Transport } from 'esptool-js'
 import { Terminal } from '@xterm/xterm'
 
+const device = null
+let transport: Transport
+let chip: string = ''
+let esploader: ESPLoader
+
 export default function BoardSelect() {
   const [canUseSerial] = useState(() => 'serial' in navigator)
   const serial = navigator['serial']
+
+  const [sketch, setSketch] = useState<string>('')
 
   const term = new Terminal({ cols: 120, rows: 40 })
 
@@ -43,7 +50,7 @@ export default function BoardSelect() {
     try {
       const device = await serial.requestPort({
         // only show senseboxes
-        filters: [{ usbVendorId: 0x303a, usbProductId: 0x81b8 }],
+        // filters: [{ usbVendorId: 0x303a, usbProductId: 0x81b8 }],
       })
       const transport = new Transport(device)
       const flashOptions = {
@@ -52,9 +59,54 @@ export default function BoardSelect() {
         terminal: espLoaderTerminal,
         debugLogging: false,
       } as LoaderOptions
-      const esploader = new ESPLoader(flashOptions)
+      esploader = new ESPLoader(flashOptions)
+
+      chip = await esploader.main()
+      console.log('Connected to: ', chip)
+
+      console.log('esploader', esploader)
+
+      // Load OTA sketch
+      const response = await fetch('http://localhost:3000/api/ota')
+      const buffer = await response.arrayBuffer()
+      const blob = new Blob([buffer])
+
+      const reader = new FileReader()
+
+      reader.onload = function () {
+        console.log('Binary String:', reader.result as string) // Binary string output
+        setSketch(reader.result as string)
+      }
+
+      reader.onerror = function () {
+        console.error('Error reading binary file:', reader.error)
+      }
+
+      reader.readAsBinaryString(blob)
     } catch (error) {
       console.error('Error listing serial ports:', error)
+    }
+  }
+
+  const flashSketch = async () => {
+    try {
+      const flashOptions: FlashOptions = {
+        fileArray: [{ data: sketch, address: 0x0 }],
+        flashSize: 'keep',
+        eraseAll: false,
+        compress: true,
+        reportProgress: (fileIndex, written, total) => {
+          // progressBars[fileIndex].value = (written / total) * 100
+          console.log('Progress: ', (written / total) * 100)
+        },
+        // calculateMD5Hash: image =>
+        //   CryptoJS.MD5(CryptoJS.enc.Latin1.parse(image)),
+      } as FlashOptions
+      console.log('Flashing sketch...')
+      await esploader.writeFlash(flashOptions)
+      await esploader.after()
+    } catch (error) {
+      console.error('Error flashing sketch:', error)
     }
   }
 
@@ -106,8 +158,9 @@ export default function BoardSelect() {
       </CardContent>
       <CardFooter className="mt-auto p-4">
         <Button
-          onClick={() => listSerialPorts()}
+          onClick={() => flashSketch()}
           className="w-full bg-senseboxGreen text-white hover:bg-senseboxGreen/80"
+          disabled={sketch === ''}
         >
           Sketch hochladen!
         </Button>
