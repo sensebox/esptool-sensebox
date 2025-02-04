@@ -208,7 +208,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
           {boardFound ? 'Board erkannt!' : 'Board suchen'}
         </Button>
 
-        <div className="flex h-full flex-col items-center justify-center gap-4">
+        <div className="flex h-full max-h-24 flex-col items-center justify-center gap-4">
           {connecting && (
             <div className="flex flex-col items-center justify-center gap-4">
               <div className="h-16 w-16 animate-spin rounded-full border-4 border-t-4 border-gray-300 border-t-senseboxGreen"></div>
@@ -236,7 +236,6 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
               <p className="p-1 text-center text-gray-600">
                 Sketch wird geflasht...
               </p>
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-t-4 border-gray-300 border-t-senseboxBlue"></div>
             </>
           )}
           {uploadSuccess && (
