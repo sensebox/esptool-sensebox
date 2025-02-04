@@ -254,7 +254,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
         <Button
           onClick={flashSketch}
           className="w-full bg-senseboxGreen text-white hover:bg-senseboxGreen/80"
-          disabled={!boardFound || sketch === ''}
+          disabled={!boardFound || sketch === '' || flashing}
         >
           Sketch hochladen!
         </Button>
