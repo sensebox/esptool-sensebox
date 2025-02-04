@@ -18,6 +18,7 @@ import {
   SearchIcon,
   Info,
   CheckCircle,
+  InfoIcon,
 } from 'lucide-react'
 import { ESPLoader, FlashOptions, LoaderOptions, Transport } from 'esptool-js'
 import { Terminal } from '@xterm/xterm'
@@ -41,6 +42,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
   const [boardFound, setBoardFound] = useState<boolean>(false)
   const [uploadSuccess, setUploadSuccess] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
+  const [connecting, setConnecting] = useState<boolean>(false)
 
   // Falls der Browser keine serielle Unterstützung bietet,
   // wird hier ein Disclaimer angezeigt.
@@ -89,7 +91,8 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
 
   const listSerialPorts = async () => {
     try {
-      setError('') // vorherige Fehler zurücksetzen
+      setError('') // Vorherige Fehler zurücksetzen
+      setConnecting(true)
       const device = await serial.requestPort({
         filters: [{ usbVendorId: 0x303a }],
       })
@@ -132,14 +135,16 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
           (error instanceof Error ? error.message : error),
       )
       setBoardFound(false)
+    } finally {
+      setConnecting(false)
     }
   }
 
   const flashSketch = async () => {
     try {
-      setError('') // vorherige Fehler zurücksetzen
+      setError('') // Vorherige Fehler zurücksetzen
       setFlashing(true)
-      setUploadSuccess(false) // Setzt den Status zurück
+      setUploadSuccess(false) // Status zurücksetzen
 
       const flashOptions: FlashOptions = {
         fileArray: [{ data: sketch, address: 0x0 }],
@@ -202,7 +207,29 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
           <SearchIcon className="h-5 w-5" />{' '}
           {boardFound ? 'Board erkannt!' : 'Board suchen'}
         </Button>
+
         <div className="flex h-full flex-col items-center justify-center gap-4">
+          {connecting && (
+            <div className="flex flex-col items-center justify-center gap-4">
+              <div className="h-16 w-16 animate-spin rounded-full border-4 border-t-4 border-gray-300 border-t-senseboxGreen"></div>
+              <p className="p-2 text-center text-gray-600">
+                Verbindung wird hergestellt...
+              </p>
+            </div>
+          )}
+          {!connecting &&
+            boardFound &&
+            !flashing &&
+            !uploadSuccess &&
+            !error && (
+              <div className="flex items-center justify-center gap-2 text-senseboxBlue">
+                <InfoIcon className="h-12 w-12" />
+                <span className="font-extrabold">
+                  Verbindung erfolgreich hergestellt! Du kannst jetzt den Sketch
+                  hochladen.
+                </span>
+              </div>
+            )}
           {flashing && (
             <>
               <Progress value={progress} />
