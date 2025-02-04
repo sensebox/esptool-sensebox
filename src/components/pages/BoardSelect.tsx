@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -11,16 +10,18 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { Select, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { UploadCloud, FileText, Cpu, SearchIcon } from 'lucide-react'
+  UploadCloud,
+  FileText,
+  Cpu,
+  SearchIcon,
+  Info,
+  CheckCircle,
+} from 'lucide-react'
 import { ESPLoader, FlashOptions, LoaderOptions, Transport } from 'esptool-js'
 import { Terminal } from '@xterm/xterm'
+import { Progress } from '../ui/progress'
 
 let chip: string = ''
 let esploader: ESPLoader
@@ -30,83 +31,122 @@ interface BoardSelectProps {
 }
 
 export default function BoardSelect({ terminal }: BoardSelectProps) {
+  // Prüfe, ob der Browser die serielle API unterstützt
   const [canUseSerial] = useState(() => 'serial' in navigator)
   const serial = navigator['serial']
 
+  const [progress, setProgress] = useState<number>(0)
   const [sketch, setSketch] = useState<string>('')
+  const [flashing, setFlashing] = useState<boolean>(false)
+  const [boardFound, setBoardFound] = useState<boolean>(false)
+  const [uploadSuccess, setUploadSuccess] = useState<boolean>(false)
+
+  // Falls der Browser keine serielle Unterstützung bietet,
+  // wird hier ein Disclaimer angezeigt.
+  if (!canUseSerial) {
+    return (
+      <Card className="flex h-full w-full flex-col border-2 border-slate-300 shadow-md">
+        <CardHeader className="rounded-t-lg bg-white p-4">
+          <div className="flex items-center space-x-2">
+            <Info className="h-6 w-6" />
+            <CardTitle className="font-bold">
+              Browser nicht unterstützt
+            </CardTitle>
+          </div>
+          <CardDescription className="font-semibold">
+            Ihr Browser unterstützt die serielle Kommunikation nicht. Bitte
+            verwenden Sie Opera, Chrome oder Edge.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
 
   const espLoaderTerminal = {
     clean() {
       terminal?.clear()
     },
     writeLine(data: string) {
+      const match = data.match(/\((\d+)%\)/)
+      if (match) {
+        setProgress(parseInt(match[1], 10))
+      }
+
+      if (data.includes('Hard resetting via RTS pin...')) {
+        console.log('Upload abgeschlossen!')
+        setProgress(100)
+        setFlashing(false)
+        setUploadSuccess(true) // Erfolgsmeldung setzen
+      }
+
       terminal?.writeln(data)
     },
     write(data: string) {
       terminal?.write(data)
     },
   }
+
   const listSerialPorts = async () => {
     try {
       const device = await serial.requestPort({
-        // only show senseboxes
         filters: [{ usbVendorId: 0x303a }],
       })
       const transport = new Transport(device)
       const flashOptions = {
         transport,
-        baudrate: parseInt('115200'),
+        baudrate: 115200,
         terminal: espLoaderTerminal,
         debugLogging: false,
       } as LoaderOptions
       esploader = new ESPLoader(flashOptions)
 
       chip = await esploader.main()
-      console.log('Connected to: ', chip)
+      console.log('Connected to:', chip)
+      setBoardFound(true)
 
-      console.log('esploader', esploader)
+      // Lade die Datei "mergedOTA.bin" aus "public/"
+      const response = await fetch('/mergedOTA.bin')
+      if (!response.ok) {
+        throw new Error(`Fehler beim Abrufen der Datei: ${response.statusText}`)
+      }
 
-      // Load OTA sketch
-      const response = await fetch('http://localhost:3000/api/ota')
       const buffer = await response.arrayBuffer()
       const blob = new Blob([buffer])
-
       const reader = new FileReader()
 
       reader.onload = function () {
-        console.log('Binary String:', reader.result as string) // Binary string output
         setSketch(reader.result as string)
       }
-
       reader.onerror = function () {
-        console.error('Error reading binary file:', reader.error)
+        console.error('Fehler beim Lesen der Datei:', reader.error)
       }
 
       reader.readAsBinaryString(blob)
     } catch (error) {
-      console.error('Error listing serial ports:', error)
+      console.error('Fehler beim Auflisten der seriellen Ports:', error)
+      setBoardFound(false)
     }
   }
 
   const flashSketch = async () => {
     try {
+      setFlashing(true)
+      setUploadSuccess(false) // Setzt den Status zurück
+
       const flashOptions: FlashOptions = {
         fileArray: [{ data: sketch, address: 0x0 }],
         flashSize: 'keep',
         eraseAll: false,
         compress: true,
         reportProgress: (fileIndex, written, total) => {
-          // progressBars[fileIndex].value = (written / total) * 100
-          console.log('Progress: ', (written / total) * 100)
+          setProgress((written / total) * 100)
         },
-        // calculateMD5Hash: image =>
-        //   CryptoJS.MD5(CryptoJS.enc.Latin1.parse(image)),
       } as FlashOptions
-      console.log('Flashing sketch...')
+
       await esploader.writeFlash(flashOptions)
       await esploader.after()
     } catch (error) {
-      console.error('Error flashing sketch:', error)
+      console.error('Fehler beim Flashen:', error)
     }
   }
 
@@ -123,10 +163,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4 p-6">
         <div className="flex flex-col space-y-1.5">
-          <Label
-            htmlFor="sketch"
-            className="flex items-center space-x-2 font-bold text-senseboxGreen"
-          >
+          <Label className="flex items-center space-x-2 font-bold text-senseboxGreen">
             <FileText className="h-5 w-5" />
             <span>Sketch auswählen</span>
           </Label>
@@ -134,33 +171,44 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
             <SelectTrigger id="sketch">
               <SelectValue placeholder="Over-the-Air (OTA)" />
             </SelectTrigger>
-            <SelectContent position="popper">
-              <SelectItem value="ota">O</SelectItem>
-            </SelectContent>
           </Select>
         </div>
-        <div className="flex flex-col space-y-1.5">
-          <Label
-            htmlFor="boardSelect"
-            className="flex items-center space-x-2 font-bold text-senseboxGreen"
-          >
-            <Cpu className="h-5 w-5" />
-            <span>Board auswählen</span>
-          </Label>
-          <Button
-            id="boardSelect"
-            onClick={() => listSerialPorts()}
-            className="w-full border-2 border-solid border-senseboxGreen bg-white text-senseboxGreen hover:bg-senseboxGreen/20"
-          >
-            <SearchIcon className="h-5 w-5" /> Board suchen
-          </Button>
-        </div>
+
+        <Label className="flex items-center space-x-2 font-bold text-senseboxGreen">
+          <Cpu className="h-5 w-5" />
+          <span>Board auswählen</span>
+        </Label>
+        <Button
+          id="boardSelect"
+          onClick={listSerialPorts}
+          className={`w-full border-2 border-solid ${
+            boardFound ? 'border-green-500' : 'border-senseboxGreen'
+          } bg-white text-senseboxGreen hover:bg-senseboxGreen/20`}
+        >
+          <SearchIcon className="h-5 w-5" />{' '}
+          {boardFound ? 'Board erkannt!' : 'Board suchen'}
+        </Button>
+
+        {flashing && (
+          <>
+            <Progress value={progress} />
+            <p className="text-center text-gray-600">Sketch wird geflasht...</p>
+          </>
+        )}
+        {uploadSuccess && (
+          <div className="flex items-center justify-center gap-2 text-green-600">
+            <CheckCircle className="h-6 w-6" />
+            <span>
+              Upload erfolgreich abgeschlossen! Die MCU-S2 ist jetzt OTA-fähig!
+            </span>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="mt-auto p-4">
         <Button
-          onClick={() => flashSketch()}
+          onClick={flashSketch}
           className="w-full bg-senseboxGreen text-white hover:bg-senseboxGreen/80"
-          disabled={sketch === ''}
+          disabled={!boardFound || sketch === ''}
         >
           Sketch hochladen!
         </Button>

@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import tailwindcssAnimate from 'tailwindcss-animate'
 
 export default {
   darkMode: ['class'],
@@ -94,6 +95,6 @@ export default {
         float3: 'float3 8s infinite alternate ease-in-out',
       },
     },
+    plugins: [tailwindcssAnimate],
   },
-  plugins: [require('tailwindcss-animate')],
-} satisfies Config
+} as Config

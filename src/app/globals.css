@@ -37,18 +37,6 @@ body {
   overflow: hidden;
 }
 
-/* Geschwungene weiße Trennung am unteren Rand */
-body::after {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 8vh;
-  bottom: 0;
-  left: 0;
-  background: white;
-  clip-path: ellipse(180% 100% at 50% 100%);
-}
-
 /* 🔥 Animation für sanftes Bewegen (wie Luftblasen) */
 @keyframes float {
   0% {
