@@ -11,21 +11,20 @@ export default function TerminalWrapper() {
   useEffect(() => {
     if (instance) {
       instance.onData(data => instance.write(data))
+      instance.options.cursorBlink = true
     }
   }, [instance])
 
   return (
     <div className="flex items-center gap-4">
       {/* BoardSelect-Komponente erhält den xterm instance */}
-      <div className="h-96 w-96">
+      <div className="h-[40vh] w-96">
         <BoardSelect terminal={instance} />
       </div>
 
       {/* Anzeige des Terminals */}
-      <div className="h-96 w-96">
-        <div className="whitespace-pre-wrap">
-          <div ref={ref} style={{ height: '100%', width: '100%' }} />
-        </div>
+      <div className="h-[40vh] w-96 overflow-scroll whitespace-pre-wrap bg-[#101420]">
+        <div ref={ref} style={{ height: '100%', width: '100%' }} />
       </div>
     </div>
   )

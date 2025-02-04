@@ -40,6 +40,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
   const [flashing, setFlashing] = useState<boolean>(false)
   const [boardFound, setBoardFound] = useState<boolean>(false)
   const [uploadSuccess, setUploadSuccess] = useState<boolean>(false)
+  const [error, setError] = useState<string>('')
 
   // Falls der Browser keine serielle Unterstützung bietet,
   // wird hier ein Disclaimer angezeigt.
@@ -88,6 +89,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
 
   const listSerialPorts = async () => {
     try {
+      setError('') // vorherige Fehler zurücksetzen
       const device = await serial.requestPort({
         filters: [{ usbVendorId: 0x303a }],
       })
@@ -119,17 +121,23 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
       }
       reader.onerror = function () {
         console.error('Fehler beim Lesen der Datei:', reader.error)
+        setError('Fehler beim Lesen der Datei.')
       }
 
       reader.readAsBinaryString(blob)
     } catch (error) {
       console.error('Fehler beim Auflisten der seriellen Ports:', error)
+      setError(
+        'Fehler beim Auflisten der seriellen Ports: ' +
+          (error instanceof Error ? error.message : error),
+      )
       setBoardFound(false)
     }
   }
 
   const flashSketch = async () => {
     try {
+      setError('') // vorherige Fehler zurücksetzen
       setFlashing(true)
       setUploadSuccess(false) // Setzt den Status zurück
 
@@ -147,6 +155,12 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
       await esploader.after()
     } catch (error) {
       console.error('Fehler beim Flashen:', error)
+      setError(
+        'Fehler beim Flashen: ' +
+          (error instanceof Error ? error.message : error),
+      )
+    } finally {
+      setFlashing(false)
     }
   }
 
@@ -188,21 +202,27 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
           <SearchIcon className="h-5 w-5" />{' '}
           {boardFound ? 'Board erkannt!' : 'Board suchen'}
         </Button>
-
-        {flashing && (
-          <>
-            <Progress value={progress} />
-            <p className="text-center text-gray-600">Sketch wird geflasht...</p>
-          </>
-        )}
-        {uploadSuccess && (
-          <div className="flex items-center justify-center gap-2 text-green-600">
-            <CheckCircle className="h-6 w-6" />
-            <span>
-              Upload erfolgreich abgeschlossen! Die MCU-S2 ist jetzt OTA-fähig!
-            </span>
-          </div>
-        )}
+        <div className="flex h-full flex-col items-center justify-center gap-4">
+          {flashing && (
+            <>
+              <Progress value={progress} />
+              <p className="p-1 text-center text-gray-600">
+                Sketch wird geflasht...
+              </p>
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-t-4 border-gray-300 border-t-senseboxBlue"></div>
+            </>
+          )}
+          {uploadSuccess && (
+            <div className="flex items-center justify-center gap-2 text-green-600">
+              <CheckCircle className="h-12 w-12" />
+              <span className="font-extrabold">
+                Upload erfolgreich abgeschlossen! Die MCU-S2 ist jetzt
+                OTA-fähig!
+              </span>
+            </div>
+          )}
+          {error && <p className="p-2 text-center text-red-600">{error}</p>}
+        </div>
       </CardContent>
       <CardFooter className="mt-auto p-4">
         <Button
