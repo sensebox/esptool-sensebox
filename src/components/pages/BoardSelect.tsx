@@ -12,7 +12,6 @@ import {
 import { Label } from '@/components/ui/label'
 import { Select, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
-  UploadCloud,
   FileText,
   Cpu,
   SearchIcon,

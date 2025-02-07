@@ -54,10 +54,10 @@ const Tutorial: React.FC = () => {
             <div>
               <p className="font-semibold text-slate-700">Board auswählen</p>
               <p className="text-sm text-slate-500">
-                Klicke auf den "Board suchen" Button, um dein Board auszuwählen und die Verbindung herzustellen.
+                Klicke auf den &#39;Board suchen&#39; Button, um dein Board auszuwählen und die Verbindung herzustellen.
               </p>
               <p className="text-sm text-slate-500">
-              Dein Board sollte angefangen mit dem Namen "ESP32-S2" angezeigt werden. 
+              Dein Board sollte angefangen mit dem Namen &#39;ESP32-S2&#39; angezeigt werden. 
               </p>
             </div>
           </li>
@@ -70,7 +70,7 @@ const Tutorial: React.FC = () => {
             <div>
               <p className="font-semibold text-slate-700">Sketch hochladen</p>
               <p className="text-sm text-slate-500">
-                Sobald das Board erkannt wurde, klicke auf "Sketch hochladen!".
+                Sobald das Board erkannt wurde, klicke auf &#39;Sketch hochladen!&#39;.
               </p>
             </div>
           </li>
