@@ -56,6 +56,9 @@ const Tutorial: React.FC = () => {
               <p className="text-sm text-slate-500">
                 Klicke auf den "Board suchen" Button, um dein Board auszuwählen und die Verbindung herzustellen.
               </p>
+              <p className="text-sm text-slate-500">
+              Dein Board sollte angefangen mit dem Namen "ESP32-S2" angezeigt werden. 
+              </p>
             </div>
           </li>
 
