@@ -171,12 +171,10 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
 
   return (
     <Card className="flex h-full w-full flex-col border-2 border-slate-300 shadow-md">
-      <CardHeader className="rounded-t-lg bg-white p-4">
-        <div className="flex items-center space-x-2">
-          <UploadCloud className="h-6 w-6" />
-          <CardTitle className="font-bold">Sketch hochladen!</CardTitle>
-        </div>
-        <CardDescription className="font-semibold">
+      <CardHeader className="border-b border-slate-200 px-4 py-3">
+      <h2 className="text-2xl font-bold text-slate-800">Sketch hochladen!</h2>
+
+        <CardDescription className="mt-1 text-lg text-slate-600">
           Lade einen Sketch auf die MCU-S2 hoch
         </CardDescription>
       </CardHeader>

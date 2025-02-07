@@ -2,6 +2,8 @@
 'use client'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
+import { Tabs, TabsList, TabsTrigger,TabsContent } from '../ui/tabs'
+import Tutorial from './Tutorial'
 
 // Dynamischer Import der TerminalWrapper-Komponente mit deaktiviertem SSR
 const TerminalWrapper = dynamic(
@@ -45,7 +47,14 @@ export default function Home() {
       </div>
 
       {/* Hier wird die dynamisch importierte TerminalWrapper-Komponente eingebunden */}
-      <TerminalWrapper />
+      <Tabs defaultValue="upload" className='w-full'>
+        <TabsList className='w-full justify-evenly p-0'>
+          <TabsTrigger className='text-2xl w-1/2' value="upload">Upload</TabsTrigger>
+          <TabsTrigger className='text-2xl w-1/2' value="tutorial">Anleitung</TabsTrigger>
+        </TabsList>
+        <TabsContent value="upload"><TerminalWrapper/></TabsContent>
+        <TabsContent value="tutorial"><Tutorial/></TabsContent>
+      </Tabs>
     </div>
   )
 }
