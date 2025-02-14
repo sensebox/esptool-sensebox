@@ -16,7 +16,7 @@ export default function TerminalWrapper() {
   }, [instance])
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex h-[60vh] items-center gap-4">
       {/* BoardSelect-Komponente erhält den xterm instance */}
       <div className="h-full w-96">
         <BoardSelect terminal={instance} />

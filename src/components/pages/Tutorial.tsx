@@ -18,8 +18,8 @@ const Tutorial: React.FC = () => {
           Schritt-für-Schritt Anleitung zur Verwendung des Terminals.
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-4">
-        <ol className="space-y-4">
+      <CardContent className="p-4 ">
+        <ol className="space-y-4 ">
           {/* Schritt 0: MCU-S2 anschließen */}
           <li className="flex items-start gap-3">
             <div className="flex-shrink-0">

@@ -13,7 +13,7 @@ const TerminalWrapper = dynamic(
 
 export default function Home() {
   return (
-    <div className="flex h-screen flex-col items-center justify-center gap-6">
+    <div className="flex h-screen flex-col items-center justify-start gap-6">
       <div className="-z-10">
         {/* Gelbe Kreise mit zufälligen Bewegungen */}
         <div className="absolute right-[5%] top-[10%] h-[120px] w-[120px] animate-float1 rounded-full bg-senseboxYellow shadow-lg"></div>
@@ -41,8 +41,6 @@ export default function Home() {
         <p className="mt-2 text-xl font-semibold">
           Mit diesem Tool kannst du deine MCU-S2 Over-the-Air (OTA) fähig
           machen!
-          <br />
-          Wähle unten dein Board aus und klicke auf Sketch hochladen!
         </p>
       </div>
 
@@ -52,8 +50,11 @@ export default function Home() {
           <TabsTrigger className='text-2xl w-1/2' value="upload">Upload</TabsTrigger>
           <TabsTrigger className='text-2xl w-1/2' value="tutorial">Anleitung</TabsTrigger>
         </TabsList>
-        <TabsContent value="upload"><TerminalWrapper/></TabsContent>
+        <div>
+        <TabsContent className='' value="upload"><TerminalWrapper/></TabsContent>
         <TabsContent value="tutorial"><Tutorial/></TabsContent>
+        </div>
+
       </Tabs>
     </div>
   )

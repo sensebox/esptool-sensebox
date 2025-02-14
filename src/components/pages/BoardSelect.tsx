@@ -22,7 +22,7 @@ import {
 import { ESPLoader, FlashOptions, LoaderOptions, Transport } from 'esptool-js'
 import { Terminal } from '@xterm/xterm'
 import { Progress } from '../ui/progress'
-
+import { FourSquare } from 'react-loading-indicators'
 let chip: string = ''
 let esploader: ESPLoader
 
@@ -91,10 +91,11 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
   const listSerialPorts = async () => {
     try {
       setError('') // Vorherige Fehler zurücksetzen
-      setConnecting(true)
       const device = await serial.requestPort({
         filters: [{ usbVendorId: 0x303a }],
       })
+      setConnecting(true)
+
       const transport = new Transport(device)
       const flashOptions = {
         transport,
@@ -177,7 +178,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
           Lade einen Sketch auf die MCU-S2 hoch
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-4 p-6">
+      <CardContent className="flex flex-1 overflow-scroll flex-col gap-4 p-6">
         <div className="flex flex-col space-y-1.5">
           <Label className="flex items-center space-x-2 font-bold text-senseboxGreen">
             <FileText className="h-5 w-5" />
@@ -207,19 +208,14 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
 
         <div className="flex h-full max-h-24 flex-col items-center justify-center gap-4">
           {connecting && (
-            <div className="flex flex-col items-center justify-center gap-4">
-              <div className="h-16 w-16 animate-spin rounded-full border-4 border-t-4 border-gray-300 border-t-senseboxGreen"></div>
-              <p className="p-2 text-center text-gray-600">
-                Verbindung wird hergestellt...
-              </p>
-            </div>
+          <FourSquare color="#669933" size="medium" text=""  textColor="" />
           )}
           {!connecting &&
             boardFound &&
             !flashing &&
             !uploadSuccess &&
             !error && (
-              <div className="flex items-center justify-center gap-2 text-senseboxBlue">
+              <div className="flex items-center justify-center gap-2 p-2 bg-blue-50 rounded-lg text-senseboxBlue">
                 <InfoIcon className="h-12 w-12" />
                 <span className="font-extrabold">
                   Verbindung erfolgreich hergestellt! Du kannst jetzt den Sketch
@@ -236,7 +232,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
             </>
           )}
           {uploadSuccess && (
-            <div className="flex items-center justify-center gap-2 text-green-600">
+            <div className="flex items-center justify-center gap-2 bg-green-100 p-2 rounded-lg text-green-600">
               <CheckCircle className="h-12 w-12" />
               <span className="font-extrabold">
                 Upload erfolgreich abgeschlossen! Die MCU-S2 ist jetzt
@@ -244,7 +240,12 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
               </span>
             </div>
           )}
-          {error && <p className="p-2 text-center text-red-600">{error}</p>}
+          {error && !error.includes('No port selected by the user.') && 
+          <div className='bg-red-50 p-2 rounded-lg'>
+              <p className=" text-center text-red-600">{error} </p>
+              {error.includes('Failed to set control signals.') && <p className='text-center  text-red-600 font-semibold'>Ist die MCU-S2 im Dev Modus? </p>}
+            </div>}
+          
         </div>
       </CardContent>
       <CardFooter className="mt-auto p-4">
