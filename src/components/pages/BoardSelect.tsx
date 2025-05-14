@@ -25,7 +25,7 @@ import { Progress } from '../ui/progress'
 import { FourSquare } from 'react-loading-indicators'
 let chip: string = ''
 let esploader: ESPLoader
-
+let transport: Transport
 interface BoardSelectProps {
   terminal: Terminal | null
 }
@@ -94,17 +94,18 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
       const device = await serial.requestPort({
         filters: [{ usbVendorId: 0x303a }],
       })
+      
       setConnecting(true)
 
-      const transport = new Transport(device)
+      transport = new Transport(device)
       const flashOptions = {
         transport,
         baudrate: 115200,
         terminal: espLoaderTerminal,
         debugLogging: false,
+
       } as LoaderOptions
       esploader = new ESPLoader(flashOptions)
-
       chip = await esploader.main()
       console.log('Connected to:', chip)
       setBoardFound(true)
@@ -166,6 +167,9 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
       )
     } finally {
       setFlashing(false)
+      transport?.disconnect()
+            
+
     }
   }
 
