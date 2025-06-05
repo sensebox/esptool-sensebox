@@ -100,7 +100,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
       transport = new Transport(device)
       const flashOptions = {
         transport,
-        baudrate: 115200,
+        baudrate: 921600,
         terminal: espLoaderTerminal,
         debugLogging: false,
 
