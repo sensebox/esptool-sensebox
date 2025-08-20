@@ -10,7 +10,13 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Select, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   FileText,
   Cpu,
@@ -18,14 +24,22 @@ import {
   Info,
   CheckCircle,
   InfoIcon,
+  PlugZap,
 } from 'lucide-react'
 import { ESPLoader, FlashOptions, LoaderOptions, Transport } from 'esptool-js'
 import { Terminal } from '@xterm/xterm'
 import { Progress } from '../ui/progress'
 import { FourSquare } from 'react-loading-indicators'
-let chip: string = ''
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../ui/accordion'
 let esploader: ESPLoader
 let transport: Transport
+let device = null
+let chip: string = ''
 interface BoardSelectProps {
   terminal: Terminal | null
 }
@@ -42,7 +56,8 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
   const [uploadSuccess, setUploadSuccess] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
   const [connecting, setConnecting] = useState<boolean>(false)
-
+  const [debugMode, setDebugMode] = useState<boolean>(false)
+  const [baudRate, setBaudRate] = useState<number>(921600)
   // Falls der Browser keine serielle Unterstützung bietet,
   // wird hier ein Disclaimer angezeigt.
   if (!canUseSerial) {
@@ -90,24 +105,25 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
 
   const listSerialPorts = async () => {
     try {
-      setError('') // Vorherige Fehler zurücksetzen
-      const device = await serial.requestPort({
-        filters: [{ usbVendorId: 0x303a }],
-      })
-      
-      setConnecting(true)
+      if (device === null) {
+        setError('') // Vorherige Fehler zurücksetzen
+        device = await serial.requestPort({
+          filters: [{ usbVendorId: 0x303a }],
+        })
+        transport = new Transport(device, true)
+      }
 
-      transport = new Transport(device)
+      setConnecting(true)
       const flashOptions = {
         transport,
-        baudrate: 921600,
+        baudrate: baudRate,
         terminal: espLoaderTerminal,
-        debugLogging: false,
-
+        debugLogging: debugMode,
       } as LoaderOptions
+
       esploader = new ESPLoader(flashOptions)
       chip = await esploader.main()
-      console.log('Connected to:', chip)
+      console.log(chip)
       setBoardFound(true)
 
       // Lade die Datei "mergedOTA.bin" aus "public/"
@@ -168,21 +184,36 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
     } finally {
       setFlashing(false)
       transport?.disconnect()
-            
+    }
+  }
 
+  const disconnectBoard = async () => {
+    try {
+      await transport?.disconnect() // Transport sauber schließen
+      //@ts-expect-error device is not a known ts
+      await device?.close() // Browser Serial-Port schließen
+    } catch (err) {
+      console.error('Fehler beim Disconnect:', err)
+    } finally {
+      device = null // Reset globale Referenz
+      setBoardFound(false) // State zurück
+      setUploadSuccess(false)
+      setError('')
+      setSketch('')
+      setProgress(0)
     }
   }
 
   return (
     <Card className="flex h-full w-full flex-col border-2 border-slate-300 shadow-md">
       <CardHeader className="border-b border-slate-200 px-4 py-3">
-      <h2 className="text-2xl font-bold text-slate-800">Sketch hochladen!</h2>
+        <h2 className="text-2xl font-bold text-slate-800">Sketch hochladen!</h2>
 
         <CardDescription className="mt-1 text-lg text-slate-600">
           Lade einen Sketch auf die MCU-S2 hoch
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-1 overflow-scroll flex-col gap-4 p-6">
+      <CardContent className="flex flex-1 flex-col gap-4 overflow-scroll p-6">
         <div className="flex flex-col space-y-1.5">
           <Label className="flex items-center space-x-2 font-bold text-senseboxGreen">
             <FileText className="h-5 w-5" />
@@ -199,27 +230,85 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
           <Cpu className="h-5 w-5" />
           <span>Board auswählen</span>
         </Label>
-        <Button
-          id="boardSelect"
-          onClick={listSerialPorts}
-          className={`w-full border-2 border-solid ${
-            boardFound ? 'border-green-500' : 'border-senseboxGreen'
-          } bg-white text-senseboxGreen hover:bg-senseboxGreen/20`}
-        >
-          <SearchIcon className="h-5 w-5" />{' '}
-          {boardFound ? 'Board erkannt!' : 'Board suchen'}
-        </Button>
+
+        {boardFound ? (
+          <Button
+            id="boardDisconnect"
+            disabled={flashing}
+            onClick={disconnectBoard}
+            className="w-full border-2 border-solid border-red-500 bg-white text-red-500 hover:bg-red-100"
+          >
+            <PlugZap className="h-5 w-5" />
+            Board trennen
+          </Button>
+        ) : (
+          <Button
+            id="boardSelect"
+            onClick={listSerialPorts}
+            className="w-full border-2 border-solid border-senseboxGreen bg-white text-senseboxGreen hover:bg-senseboxGreen/20"
+          >
+            <SearchIcon className="h-5 w-5" />
+            Board suchen
+          </Button>
+        )}
+        <Accordion type="single" collapsible>
+          <AccordionItem
+            value="advanced"
+            className="rounded-lg border bg-gray-50 shadow-sm"
+          >
+            <AccordionTrigger className="rounded-t-lg px-4 py-3 text-lg font-bold text-senseboxGreen hover:bg-green-50 hover:text-green-700">
+              Developer Einstellungen
+            </AccordionTrigger>
+
+            <AccordionContent className="space-y-4 rounded-b-lg bg-white px-4 py-4">
+              {/* Debug Mode Checkbox */}
+              <div className="flex items-center space-x-3 rounded-md border border-gray-200 p-2 transition hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  id="debugMode"
+                  checked={debugMode}
+                  onChange={e => setDebugMode(e.target.checked)}
+                  className="h-4 w-4 accent-senseboxGreen focus:ring-senseboxGreen"
+                />
+                <Label
+                  htmlFor="debugMode"
+                  className="cursor-pointer font-semibold text-gray-700"
+                >
+                  Debug Modus aktivieren
+                </Label>
+              </div>
+
+              {/* Baudrate Dropdown */}
+              <div className="flex flex-col space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+                <Label className="text-sm font-bold text-senseboxGreen">
+                  Baudrate auswählen
+                </Label>
+                <Select onValueChange={val => setBaudRate(Number(val))}>
+                  <SelectTrigger className="w-full border-gray-300 shadow-sm focus:ring-2 focus:ring-senseboxGreen">
+                    <SelectValue placeholder="Wähle Baudrate…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="115200">115200</SelectItem>
+                    <SelectItem value="230400">230400</SelectItem>
+                    <SelectItem value="460800">460800</SelectItem>
+                    <SelectItem value="921600">921600</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         <div className="flex h-full max-h-24 flex-col items-center justify-center gap-4">
           {connecting && (
-          <FourSquare color="#669933" size="medium" text=""  textColor="" />
+            <FourSquare color="#669933" size="medium" text="" textColor="" />
           )}
           {!connecting &&
             boardFound &&
             !flashing &&
             !uploadSuccess &&
             !error && (
-              <div className="flex items-center justify-center gap-2 p-2 bg-blue-50 rounded-lg text-senseboxBlue">
+              <div className="flex items-center justify-center gap-2 rounded-lg bg-blue-50 p-2 text-senseboxBlue">
                 <InfoIcon className="h-12 w-12" />
                 <span className="font-extrabold">
                   Verbindung erfolgreich hergestellt! Du kannst jetzt den Sketch
@@ -236,7 +325,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
             </>
           )}
           {uploadSuccess && (
-            <div className="flex items-center justify-center gap-2 bg-green-100 p-2 rounded-lg text-green-600">
+            <div className="flex items-center justify-center gap-2 rounded-lg bg-green-100 p-2 text-green-600">
               <CheckCircle className="h-12 w-12" />
               <span className="font-extrabold">
                 Upload erfolgreich abgeschlossen! Die MCU-S2 ist jetzt
@@ -244,12 +333,16 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
               </span>
             </div>
           )}
-          {error && !error.includes('No port selected by the user.') && 
-          <div className='bg-red-50 p-2 rounded-lg'>
-              <p className=" text-center text-red-600">{error} </p>
-              {error.includes('Failed to set control signals.') && <p className='text-center  text-red-600 font-semibold'>Ist die MCU-S2 im Dev Modus? </p>}
-            </div>}
-          
+          {error && !error.includes('No port selected by the user.') && (
+            <div className="rounded-lg bg-red-50 p-2">
+              <p className="text-center text-red-600">{error} </p>
+              {error.includes('Failed to set control signals.') && (
+                <p className="text-center font-semibold text-red-600">
+                  Ist die MCU-S2 im Dev Modus?{' '}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="mt-auto p-4">
