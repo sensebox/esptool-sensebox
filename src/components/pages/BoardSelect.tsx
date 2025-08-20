@@ -234,6 +234,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
         {boardFound ? (
           <Button
             id="boardDisconnect"
+            disabled={flashing}
             onClick={disconnectBoard}
             className="w-full border-2 border-solid border-red-500 bg-white text-red-500 hover:bg-red-100"
           >
