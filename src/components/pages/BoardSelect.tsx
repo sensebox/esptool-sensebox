@@ -39,6 +39,7 @@ import {
 let esploader: ESPLoader
 let transport: Transport
 let device = null
+let chip: string = ''
 interface BoardSelectProps {
   terminal: Terminal | null
 }
@@ -55,7 +56,6 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
   const [uploadSuccess, setUploadSuccess] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
   const [connecting, setConnecting] = useState<boolean>(false)
-  const [chip, setChip] = useState<string | null>(null)
   const [debugMode, setDebugMode] = useState<boolean>(false)
   const [baudRate, setBaudRate] = useState<number>(921600)
   // Falls der Browser keine serielle Unterstützung bietet,
@@ -122,7 +122,8 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
       } as LoaderOptions
 
       esploader = new ESPLoader(flashOptions)
-      setChip(await esploader.main())
+      chip = await esploader.main()
+      console.log(chip)
       setBoardFound(true)
 
       // Lade die Datei "mergedOTA.bin" aus "public/"
@@ -196,7 +197,6 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
     } finally {
       device = null // Reset globale Referenz
       setBoardFound(false) // State zurück
-      setChip(null) // Chip-Info zurücksetzen
       setUploadSuccess(false)
       setError('')
       setSketch('')
@@ -282,7 +282,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
                 <Label className="text-sm font-bold text-senseboxGreen">
                   Baudrate auswählen
                 </Label>
-                <Select onValueChange={val => setBaudRate(val)}>
+                <Select onValueChange={val => setBaudRate(Number(val))}>
                   <SelectTrigger className="w-full border-gray-300 shadow-sm focus:ring-2 focus:ring-senseboxGreen">
                     <SelectValue placeholder="Wähle Baudrate…" />
                   </SelectTrigger>
