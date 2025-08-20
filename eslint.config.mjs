@@ -16,6 +16,7 @@ const eslintConfig = [
       'no-unused-vars': 'off',
       'no-undef': 'off',
       'no-console': 'off',
+      'no-explicity-any': 'off',
       // Add other rules you want to disable here
     },
   },
