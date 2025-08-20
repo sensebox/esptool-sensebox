@@ -38,8 +38,8 @@ import {
 } from '../ui/accordion'
 let esploader: ESPLoader
 let transport: Transport
-let device = null
-let chip: string = ''
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let device: any = null
 interface BoardSelectProps {
   terminal: Terminal | null
 }
@@ -105,13 +105,11 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
 
   const listSerialPorts = async () => {
     try {
-      if (device === null) {
-        setError('') // Vorherige Fehler zurücksetzen
-        device = await serial.requestPort({
-          filters: [{ usbVendorId: 0x303a }],
-        })
-        transport = new Transport(device, true)
-      }
+      setError('') // Vorherige Fehler zurücksetzen
+      device = await serial.requestPort({
+        filters: [{ usbVendorId: 0x303a }],
+      })
+      transport = new Transport(device, true)
 
       setConnecting(true)
       const flashOptions = {
@@ -122,8 +120,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
       } as LoaderOptions
 
       esploader = new ESPLoader(flashOptions)
-      chip = await esploader.main()
-      console.log(chip)
+      await esploader.main()
       setBoardFound(true)
 
       // Lade die Datei "mergedOTA.bin" aus "public/"
@@ -189,8 +186,8 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
 
   const disconnectBoard = async () => {
     try {
+      console.log('Hallo')
       await transport?.disconnect() // Transport sauber schließen
-      //@ts-expect-error device is not a known ts
       await device?.close() // Browser Serial-Port schließen
     } catch (err) {
       console.error('Fehler beim Disconnect:', err)
