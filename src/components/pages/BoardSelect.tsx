@@ -58,6 +58,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
   const [connecting, setConnecting] = useState<boolean>(false)
   const [debugMode, setDebugMode] = useState<boolean>(false)
   const [baudRate, setBaudRate] = useState<number>(921600)
+  const [selected, setSelected] = useState<string>('ota')
   // Falls der Browser keine serielle Unterstützung bietet,
   // wird hier ein Disclaimer angezeigt.
   if (!canUseSerial) {
@@ -124,7 +125,11 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
       setBoardFound(true)
 
       // Lade die Datei "mergedOTA.bin" aus "public/"
-      const response = await fetch('/mergedOTA.bin')
+      const response =
+        selected === 'ota'
+          ? await fetch('/mergedOTA.bin')
+          : await fetch('/circuitpython9_2_8.bin')
+
       if (!response.ok) {
         throw new Error(`Fehler beim Abrufen der Datei: ${response.statusText}`)
       }
@@ -163,7 +168,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
       const flashOptions: FlashOptions = {
         fileArray: [{ data: sketch, address: 0x0 }],
         flashSize: 'keep',
-        eraseAll: false,
+        eraseAll: true,
         compress: true,
         reportProgress: (fileIndex, written, total) => {
           setProgress((written / total) * 100)
@@ -216,10 +221,14 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
             <FileText className="h-5 w-5" />
             <span>Sketch auswählen</span>
           </Label>
-          <Select disabled={true}>
-            <SelectTrigger id="sketch">
+          <Select value={selected} onValueChange={value => setSelected(value)}>
+            <SelectTrigger onChange={e => console.log(e)} id="sketch">
               <SelectValue placeholder="Over-the-Air (OTA)" />
             </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ota">Over-the-Air (OTA)</SelectItem>
+              <SelectItem value="circuitpython">CircuitPython</SelectItem>
+            </SelectContent>
           </Select>
         </div>
 
@@ -325,8 +334,8 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
             <div className="flex items-center justify-center gap-2 rounded-lg bg-green-100 p-2 text-green-600">
               <CheckCircle className="h-12 w-12" />
               <span className="font-extrabold">
-                Upload erfolgreich abgeschlossen! Die MCU-S2 ist jetzt
-                OTA-fähig!
+                Upload erfolgreich abgeschlossen! Starte die MCU-S2 neu und sie
+                ist {selected === 'ota' ? 'OTA' : 'CircuitPython'} fähig!
               </span>
             </div>
           )}
