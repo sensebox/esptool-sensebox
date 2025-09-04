@@ -124,11 +124,24 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
       await esploader.main()
       setBoardFound(true)
 
+      let response
       // Lade die Datei "mergedOTA.bin" aus "public/"
-      const response =
-        selected === 'ota'
-          ? await fetch('/mergedOTA.bin')
-          : await fetch('/circuitpython9_2_8.bin')
+      switch (selected) {
+        case 'ota':
+          response = await fetch('/mergedOTA.bin')
+          break
+        case 'circuitpython':
+          response = await fetch('/circuitpython9_2_8.bin')
+          break
+        case 'uf2':
+          response = await fetch(
+            'tinyuf2-sensebox_mcu_esp32s2-0.35.0-combined.bin',
+          )
+          break
+        default:
+          response = await fetch('/mergedOTA.bin')
+          break
+      }
 
       if (!response.ok) {
         throw new Error(`Fehler beim Abrufen der Datei: ${response.statusText}`)
@@ -222,12 +235,13 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
             <span>Sketch auswählen</span>
           </Label>
           <Select value={selected} onValueChange={value => setSelected(value)}>
-            <SelectTrigger onChange={e => console.log(e)} id="sketch">
+            <SelectTrigger id="sketch">
               <SelectValue placeholder="Over-the-Air (OTA)" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ota">Over-the-Air (OTA)</SelectItem>
               <SelectItem value="circuitpython">CircuitPython</SelectItem>
+              <SelectItem value="uf2">UF2-Bootloader</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -334,8 +348,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
             <div className="flex items-center justify-center gap-2 rounded-lg bg-green-100 p-2 text-green-600">
               <CheckCircle className="h-12 w-12" />
               <span className="font-extrabold">
-                Upload erfolgreich abgeschlossen! Starte die MCU-S2 neu und sie
-                ist {selected === 'ota' ? 'OTA' : 'CircuitPython'} fähig!
+                Upload erfolgreich abgeschlossen! Resette die MCU-S2 jetzt neu !
               </span>
             </div>
           )}
