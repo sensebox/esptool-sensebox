@@ -31,5 +31,5 @@ jobs:
         with:
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/react-ardublockly-backend:latest
-            ghcr.io/${{ github.repository_owner }}/react-ardublockly-backend:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/esptool-sensebox:latest
+            ghcr.io/${{ github.repository_owner }}/esptool-sensebox:${{ github.ref_name }}
