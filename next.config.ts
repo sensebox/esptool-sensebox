@@ -11,16 +11,6 @@ const nextConfig: NextConfig = {
       },
     ]
   },
-
-  async redirects() {
-    return [
-      {
-        source: '/:path*',
-        destination: 'https://flash.sensebox.de/:path*',
-        permanent: true,
-      },
-    ]
-  },
 }
 
 export default nextConfig
