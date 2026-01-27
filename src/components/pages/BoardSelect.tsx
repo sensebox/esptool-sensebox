@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -7,7 +7,6 @@ import {
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import {
@@ -21,13 +20,12 @@ import {
   FileText,
   Cpu,
   SearchIcon,
-  Info,
   CheckCircle,
   InfoIcon,
   PlugZap,
 } from 'lucide-react'
-import { ESPLoader, FlashOptions, LoaderOptions, Transport } from 'esptool-js'
 import { Terminal } from '@xterm/xterm'
+import { EspTerminal } from '../../lib/espTerminal'
 import { Progress } from '../ui/progress'
 import { FourSquare } from 'react-loading-indicators'
 import {
@@ -36,19 +34,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '../ui/accordion'
-let esploader: ESPLoader
-let transport: Transport
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let device: any = null
+import { connectESP, formatMacAddr, sleep } from '../../lib/esp'
+
 interface BoardSelectProps {
   terminal: Terminal | null
 }
 
 export default function BoardSelect({ terminal }: BoardSelectProps) {
   // Prüfe, ob der Browser die serielle API unterstützt
-  const [canUseSerial] = useState(() => 'serial' in navigator)
-  const serial = navigator['serial']
-
   const [progress, setProgress] = useState<number>(0)
   const [sketch, setSketch] = useState<string>('')
   const [flashing, setFlashing] = useState<boolean>(false)
@@ -59,159 +52,157 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
   const [debugMode, setDebugMode] = useState<boolean>(false)
   const [baudRate, setBaudRate] = useState<number>(921600)
   const [selected, setSelected] = useState<string>('ota')
-  // Falls der Browser keine serielle Unterstützung bietet,
-  // wird hier ein Disclaimer angezeigt.
-  if (!canUseSerial) {
-    return (
-      <Card className="flex h-full w-full flex-col border-2 border-slate-300 shadow-md">
-        <CardHeader className="rounded-t-lg bg-white p-4">
-          <div className="flex items-center space-x-2">
-            <Info className="h-6 w-6" />
-            <CardTitle className="font-bold">
-              Browser nicht unterstützt
-            </CardTitle>
-          </div>
-          <CardDescription className="font-semibold">
-            Ihr Browser unterstützt die serielle Kommunikation nicht. Bitte
-            verwenden Sie Opera, Chrome oder Edge.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    )
-  }
-
-  const espLoaderTerminal = {
-    clean() {
-      terminal?.clear()
-    },
-    writeLine(data: string) {
-      const match = data.match(/\((\d+)%\)/)
-      if (match) {
-        setProgress(parseInt(match[1], 10))
-      }
-
-      if (data.includes('Hard resetting via RTS pin...')) {
-        console.log('Upload abgeschlossen!')
-        setProgress(100)
-        setFlashing(false)
-        setUploadSuccess(true) // Erfolgsmeldung setzen
-      }
-
-      terminal?.writeln(data)
-    },
-    write(data: string) {
-      terminal?.write(data)
-    },
-  }
-
-  const listSerialPorts = async () => {
-    try {
-      setError('') // Vorherige Fehler zurücksetzen
-      device = await serial.requestPort({
-        filters: [{ usbVendorId: 0x303a }],
-      })
-      transport = new Transport(device, true)
-
-      setConnecting(true)
-      const flashOptions = {
-        transport,
-        baudrate: baudRate,
-        terminal: espLoaderTerminal,
-        debugLogging: debugMode,
-      } as LoaderOptions
-
-      esploader = new ESPLoader(flashOptions)
-      await esploader.main()
-      setBoardFound(true)
-
-      let response
-      // Lade die Datei "mergedOTA.bin" aus "public/"
-      switch (selected) {
-        case 'ota':
-          response = await fetch('/mergedOTA.bin')
-          break
-        case 'circuitpython':
-          response = await fetch('/circuitpython9_2_8.bin')
-          break
-        case 'uf2':
-          response = await fetch(
-            'tinyuf2-sensebox_mcu_esp32s2-0.35.0-combined.bin',
-          )
-          break
-        default:
-          response = await fetch('/mergedOTA.bin')
-          break
-      }
-
-      if (!response.ok) {
-        throw new Error(`Fehler beim Abrufen der Datei: ${response.statusText}`)
-      }
-
-      const buffer = await response.arrayBuffer()
-      const blob = new Blob([buffer])
-      const reader = new FileReader()
-
-      reader.onload = function () {
-        setSketch(reader.result as string)
-      }
-      reader.onerror = function () {
-        console.error('Fehler beim Lesen der Datei:', reader.error)
-        setError('Fehler beim Lesen der Datei.')
-      }
-
-      reader.readAsBinaryString(blob)
-    } catch (error) {
-      console.error('Fehler beim Auflisten der seriellen Ports:', error)
-      setError(
-        'Fehler beim Auflisten der seriellen Ports: ' +
-          (error instanceof Error ? error.message : error),
-      )
-      setBoardFound(false)
-    } finally {
-      setConnecting(false)
+  interface EspStub {
+    flashData?: (
+      buffer: ArrayBuffer,
+      onProgress: (bytesWritten: number, totalBytes: number) => void,
+      offset: number,
+    ) => Promise<void>
+    disconnect?: () => Promise<void>
+    port?: {
+      close?: () => Promise<void>
+      addEventListener?: (event: string, handler: () => void) => void
     }
   }
+  const [espStub, setEspStub] = useState<EspStub | undefined>(undefined)
 
-  const flashSketch = async () => {
+  // Use refs for transport/device to avoid re-renders
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error
+  const transportRef = useRef<Transport | null>(null)
+  const deviceRef = useRef<unknown>(null)
+
+  // --- Modular helpers ---
+  async function fetchFirmware(selected: string): Promise<ArrayBuffer> {
+    let response
+    switch (selected) {
+      case 'ota':
+        response = await fetch('/mergedOTA.bin')
+        break
+      case 'circuitpython':
+        response = await fetch('/circuitpython9_2_8.bin')
+        break
+      case 'uf2':
+        response = await fetch(
+          'tinyuf2-sensebox_mcu_esp32s2-0.35.0-combined.bin',
+        )
+        break
+      default:
+        response = await fetch('/mergedOTA.bin')
+        break
+    }
+    if (!response.ok) {
+      throw new Error(`Fehler beim Abrufen der Datei: ${response.statusText}`)
+    }
+    return await response.arrayBuffer()
+  }
+
+  function readFirmwareToSketch(buffer: ArrayBuffer) {
+    const blob = new Blob([buffer])
+    const reader = new FileReader()
+    reader.onload = function () {
+      setSketch(reader.result as string)
+    }
+    reader.onerror = function () {
+      console.error('Fehler beim Lesen der Datei:', reader.error)
+      setError('Fehler beim Lesen der Datei.')
+    }
+    reader.readAsBinaryString(blob)
+  }
+
+  // ...existing code...
+
+  const espLoaderTerminal = new EspTerminal(terminal, {
+    setProgress,
+    setFlashing,
+    setUploadSuccess,
+  })
+
+  const clickConnect = async () => {
+    if (espStub) {
+      await espStub.disconnect?.()
+      await espStub.port?.close?.()
+      setEspStub(undefined)
+      return
+    }
+    const esploader = await connectESP({
+      log: (...args: unknown[]) => espLoaderTerminal.writeLine(args.join(' ')),
+      debug: (...args: unknown[]) =>
+        espLoaderTerminal.writeLine('[DEBUG] ' + args.join(' ')),
+      error: (...args: unknown[]) =>
+        espLoaderTerminal.writeLine('[ERROR] ' + args.join(' ')),
+      baudRate: baudRate,
+    })
+    setConnecting(true)
+    await esploader.initialize()
+    console.log(`Connected to ${esploader.chipName}`)
+    console.log(`MAC Address: ${formatMacAddr(esploader.macAddr())}`)
+    const newEspStub = await esploader.runStub()
+    setConnecting(false)
+    setEspStub(newEspStub)
+    setBoardFound(true)
     try {
-      setError('') // Vorherige Fehler zurücksetzen
-      setFlashing(true)
-      setUploadSuccess(false) // Status zurücksetzen
-
-      const flashOptions: FlashOptions = {
-        fileArray: [{ data: sketch, address: 0x0 }],
-        flashSize: 'keep',
-        eraseAll: true,
-        compress: true,
-        reportProgress: (fileIndex, written, total) => {
-          setProgress((written / total) * 100)
-        },
-      } as FlashOptions
-
-      await esploader.writeFlash(flashOptions)
-      await esploader.after()
-    } catch (error) {
-      console.error('Fehler beim Flashen:', error)
+      const buffer = await fetchFirmware(selected)
+      readFirmwareToSketch(buffer)
+    } catch (err) {
       setError(
-        'Fehler beim Flashen: ' +
-          (error instanceof Error ? error.message : error),
+        'Fehler beim Laden der Firmware: ' +
+          (err instanceof Error ? err.message : err),
       )
+    }
+    newEspStub.port?.addEventListener?.('disconnect', () => {
+      setBoardFound(false)
+      setEspStub(undefined)
+      console.log('Device disconnected')
+    })
+  }
+
+  const program = async () => {
+    setError('')
+    setFlashing(true)
+    setUploadSuccess(false)
+    try {
+      if (!espStub) {
+        setError('ESP nicht verbunden.')
+        setFlashing(false)
+        return
+      }
+      const buffer = await fetchFirmware(selected)
+      await espStub.flashData?.(
+        buffer,
+        (bytesWritten: number, totalBytes: number) => {
+          const progress = bytesWritten / totalBytes
+          const percentage = Math.floor(progress * 100)
+          setProgress(percentage)
+          espLoaderTerminal.writeLine(`Flashing... ${percentage}%`)
+        },
+        0x0,
+      )
+      await sleep(100)
+      espLoaderTerminal.writeLine(`Done!`)
+      espLoaderTerminal.writeLine(
+        `To run the new firmware please reset your device.`,
+      )
+      setUploadSuccess(true)
+    } catch (e) {
+      console.error(e)
+      setError('Fehler beim Flashen: ' + (e instanceof Error ? e.message : e))
     } finally {
       setFlashing(false)
-      transport?.disconnect()
     }
   }
 
   const disconnectBoard = async () => {
     try {
-      console.log('Hallo')
-      await transport?.disconnect() // Transport sauber schließen
-      await device?.close() // Browser Serial-Port schließen
+      await transportRef.current?.disconnect?.()
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
+      await deviceRef.current?.close?.()
     } catch (err) {
       console.error('Fehler beim Disconnect:', err)
     } finally {
-      device = null // Reset globale Referenz
-      setBoardFound(false) // State zurück
+      deviceRef.current = null
+      setBoardFound(false)
       setUploadSuccess(false)
       setError('')
       setSketch('')
@@ -264,7 +255,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
         ) : (
           <Button
             id="boardSelect"
-            onClick={listSerialPorts}
+            onClick={clickConnect}
             className="w-full border-2 border-solid border-senseboxGreen bg-white text-senseboxGreen hover:bg-senseboxGreen/20"
           >
             <SearchIcon className="h-5 w-5" />
@@ -366,7 +357,7 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
       </CardContent>
       <CardFooter className="mt-auto p-4">
         <Button
-          onClick={flashSketch}
+          onClick={program}
           className="w-full bg-senseboxGreen text-white hover:bg-senseboxGreen/80"
           disabled={!boardFound || sketch === '' || flashing}
         >
