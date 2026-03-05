@@ -87,6 +87,9 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
           'tinyuf2-sensebox_mcu_esp32s2-0.35.0-combined.bin',
         )
         break
+      case 'basic': 
+        response = await fetch('/basic_firmware.bin')
+        break
       default:
         response = await fetch('/mergedOTA.bin')
         break
@@ -231,8 +234,10 @@ export default function BoardSelect({ terminal }: BoardSelectProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ota">Over-the-Air (OTA)</SelectItem>
+              <SelectItem value="basic">senseBox:basic Sketch</SelectItem>
               <SelectItem value="circuitpython">CircuitPython</SelectItem>
               <SelectItem value="uf2">UF2-Bootloader</SelectItem>
+
             </SelectContent>
           </Select>
         </div>
