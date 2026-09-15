@@ -18,6 +18,7 @@
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-tabs": "^1.1.3",
     "@xterm/xterm": "^5.5.0",
+    "@sensebox/flash-tool": "link:../sensebox-flash-tool",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "esptool-js": "^0.5.4",

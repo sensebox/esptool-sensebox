@@ -6,6 +6,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs'
 import Tutorial from './Tutorial'
 import { useState, useEffect } from 'react'
 import { cva } from 'class-variance-authority'
+import { FlashTool } from "@sensebox/flash-tool";
+import "@sensebox/flash-tool/style.css";
 
 // Dynamischer Import der TerminalWrapper-Komponente mit deaktiviertem SSR
 const TerminalWrapper = dynamic(
@@ -80,7 +82,7 @@ export default function Home() {
             className={cva(tabValue === 'upload' ? '' : 'hidden')()}
             value="upload"
           >
-            <TerminalWrapper />
+            <FlashTool language="de" expand={true}/> 
           </TabsContent>
           <TabsContent value="tutorial">
             <Tutorial />
