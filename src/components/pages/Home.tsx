@@ -1,33 +1,13 @@
 // Home.tsx
 'use client'
-import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs'
-import Tutorial from './Tutorial'
-import { useState, useEffect } from 'react'
-import { cva } from 'class-variance-authority'
 import { FlashTool } from "@sensebox/flash-tool";
 import "@sensebox/flash-tool/style.css";
 
-// Dynamischer Import der TerminalWrapper-Komponente mit deaktiviertem SSR
-const TerminalWrapper = dynamic(
-  () => import('@/components/pages/TerminalWrapper'),
-  { ssr: false },
-)
 
 export default function Home() {
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const script = document.createElement('script')
-      script.type = 'module'
-      script.innerHTML = `
-        import * as esptool from 'https://unpkg.com/esp-web-flasher@5.1.4/dist/web/index.js?module';
-        window.esptoolPackage = esptool;
-      `
-      document.body.appendChild(script)
-    }
-  }, [])
-  const [tabValue, setTabValue] = useState('upload')
+  
+ 
   return (
     <div className="flex h-screen flex-col items-center justify-start gap-6">
       <div className="-z-10">
@@ -59,36 +39,9 @@ export default function Home() {
           machen!
         </p>
       </div>
+    {/* @ts-expect-error FlashTool props are inferred as required because @sensebox/flash-tool ships without dist/index.d.ts */}
+    <FlashTool language="de" expand={true}/>
 
-      {/* Hier wird die dynamisch importierte TerminalWrapper-Komponente eingebunden */}
-      <Tabs
-        defaultValue="upload"
-        className="w-full"
-        onValueChange={value => {
-          setTabValue(value)
-        }}
-      >
-        <TabsList className="w-full justify-evenly p-0">
-          <TabsTrigger className="w-1/2 text-2xl" value="upload">
-            Upload
-          </TabsTrigger>
-          <TabsTrigger className="w-1/2 text-2xl" value="tutorial">
-            Anleitung
-          </TabsTrigger>
-        </TabsList>
-        <div>
-          <TabsContent
-            forceMount
-            className={cva(tabValue === 'upload' ? '' : 'hidden')()}
-            value="upload"
-          >
-            <FlashTool language="de" expand={true}/> 
-          </TabsContent>
-          <TabsContent value="tutorial">
-            <Tutorial />
-          </TabsContent>
-        </div>
-      </Tabs>
     </div>
   )
 }
