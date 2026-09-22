@@ -39,9 +39,7 @@ export default function Home() {
           machen!
         </p>
       </div>
-    {/* @ts-expect-error FlashTool props are inferred as required because @sensebox/flash-tool ships without dist/index.d.ts */}
     <FlashTool language="de" expand={true}/>
-
     </div>
   )
 }

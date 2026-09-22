@@ -846,9 +846,13 @@
   resolved "https://registry.npmjs.org/@rushstack/eslint-patch/-/eslint-patch-1.10.5.tgz"
   integrity sha512-kkKUDVlII2DQiKy7UstOR1ErJP8kUKAQ4oa+SQtM0K+lPdmmjj0YnnxBgtTVYH7mUKtbsxeFC9y0AmK7Yb78/A==
 
-"@sensebox/flash-tool@link:../sensebox-flash-tool":
-  version "0.0.0"
-  uid ""
+"@sensebox/flash-tool@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@sensebox/flash-tool/-/flash-tool-1.0.0.tgz#4f204fae0635a98884a2877ff408121b5aa8d3c2"
+  integrity sha512-Cr3m3f+uAiRLhFP9d7jwZZ7Kd60i65V8VO+6SBQuREm/2ycz8pV+zDFkteoBI14rAgRs5OkKTgzy/32sMcnqug==
+  dependencies:
+    esptool-js "^0.6.0"
+    prop-types "^15.8.1"
 
 "@swc/helpers@0.5.15":
   version "0.5.15"
