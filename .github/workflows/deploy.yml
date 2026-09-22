@@ -29,7 +29,7 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
-          push: true
+          push: ${{ github.event_name == 'push' }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/esptool-sensebox:latest
-            ghcr.io/${{ github.repository_owner }}/esptool-sensebox:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/esptool-sensebox:${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || github.ref_name }}
