@@ -3,11 +3,15 @@
 import Image from 'next/image'
 import { FlashTool } from "@sensebox/flash-tool";
 import "@sensebox/flash-tool/style.css";
+import type { Sketch } from '@/lib/sketches'
 
 
-export default function Home() {
-  
- 
+export default function Home({ sketch }: { sketch?: Sketch }) {
+  // Keep the URL in sync with the dropdown so it can be shared as a permalink
+  const handleSketchChange = (type: string) => {
+    window.history.replaceState(null, '', `/${type}`)
+  }
+
   return (
     <div className="flex h-screen flex-col items-center justify-start gap-6">
       <div className="-z-10">
@@ -39,7 +43,12 @@ export default function Home() {
           machen!
         </p>
       </div>
-    <FlashTool language="de" expand={true}/>
+    <FlashTool
+      language="de"
+      expand={true}
+      defaultFirmwareType={sketch}
+      onFirmwareTypeChange={handleSketchChange}
+    />
     </div>
   )
 }
